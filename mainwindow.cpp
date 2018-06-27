@@ -9,8 +9,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 //    mediaStreamWidget = new MediaStreamWidget("rtsp://192.168.61.215/chn1");
-    mediaStreamWidget = new MediaStreamWidget("rtsp://192.168.0.1/chn1");
-//    mediaStreamWidget = new MediaStreamWidget("rtsp://184.72.239.149/vod/mp4:BigBuckBunny_175k.mov", this);
+//    mediaStreamWidget = new MediaStreamWidget("rtsp://192.168.0.1/chn1");
+    mediaStreamWidget = new MediaStreamWidget("rtsp://184.72.239.149/vod/mp4:BigBuckBunny_175k.mov", this);
 //    mediaStreamWidget = new MediaStreamWidget("rtsp://127.0.0.1:1235/test1.sdp");
 
 //    layout()->setAlignment(Qt::AlignTop);
