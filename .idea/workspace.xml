@@ -13,6 +13,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9810cf7c-6ddd-4da3-a4d4-365e26aa87b9" name="Default" comment="">
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MediaStreamProc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/MediaStreamProc.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MediaStreamProc.h" beforeDir="false" afterPath="$PROJECT_DIR$/MediaStreamProc.h" afterDir="false" />
@@ -285,12 +286,12 @@
       <workItem from="1529916202128" duration="3634000" />
       <workItem from="1529926593931" duration="4299000" />
       <workItem from="1529976321325" duration="16823000" />
-      <workItem from="1530000952888" duration="23585000" />
+      <workItem from="1530000952888" duration="23831000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="129273000" />
+    <option name="totallyTimeSpent" value="129519000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
