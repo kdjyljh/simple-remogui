@@ -32,10 +32,10 @@ private slots:
 
 private:
     std::string url;
-    bool refreshAiInfo;
     boost::shared_ptr<MediaStreamProc> mediaStreamProc;
+    MediaFrame *curFrame;
     QImage image;
-    MediaFrame_AI_Info aiInfo;
+    QRect parentGeo;
 };
 
 #endif // MEDIASTREAMWIDGET_H

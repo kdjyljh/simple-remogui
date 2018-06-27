@@ -4,12 +4,14 @@
 #include <QPainter>
 #include <QMouseEvent>
 #include <glog/logging.h>
+#include <QDebug>
 
 MediaStreamWidget::MediaStreamWidget(std::string streamUrl, QWidget *parent) :
-    QWidget(parent),
-    url(streamUrl),
-    refreshAiInfo(false),
-    mediaStreamProc(new MediaStreamProc) {
+        QWidget(parent),
+        url(streamUrl),
+        curFrame(nullptr),
+        parentGeo(QRect(0, 0, 0, 0)),
+        mediaStreamProc(new MediaStreamProc) {
     if (url.empty()) {
         url = "rtsp://192.168.0.1/chn1"; //默认url
     }
@@ -37,24 +39,42 @@ void MediaStreamWidget::mouseReleaseEvent(QMouseEvent *ev) {
 }
 
 void MediaStreamWidget::paintEvent(QPaintEvent *event) {
-    QPainter painter(this);
-    if (!image.isNull()) {
-        QImage showImage = image.scaled(size(), Qt::KeepAspectRatio);
-        painter.drawImage(showImage.rect(), showImage);
+//    LOG(INFO) << "MediaStreamWidget::paintEvent start";
+    if (nullptr == curFrame) {
+        return;
     }
 
-    QPen pen(Qt::red, Qt::SolidLine);
+    QPainter painter(this);
 
-    if (refreshAiInfo) {
+    //和解码线程共享frame数据，数据由解码线程管理
+    image = QImage(curFrame->image.data[0], curFrame->image.width, curFrame->image.height, QImage::Format_RGB32)/*.copy()*/;
+    if (!image.isNull()) {
+        QRect refRect = parentGeo;
+        if (refRect.isNull()) {
+            refRect = rect();
+        }
+        //按比例缩放,保持长宽比,按宽高的最小值确定缩放比例
+        int w = std::min((double)refRect.width(), ((double)refRect.height()) / image.height() * image.width());
+        int h = ((double)image.height() / image.width()) * w;
+        int x = (refRect.width() - w) / 2.0;
+        int y = 0;
+//        QImage showImage = image.scaled(parentGeo.size(), Qt::KeepAspectRatio); //不需要scale,在drawImage里面scale
+        setGeometry(x, y, w, h);
+        painter.drawImage(rect(), image, image.rect(), Qt::NoFormatConversion);
+    }
+
+    if (curFrame->hasAiInfo) {
+        MediaFrame_AI_Info aiInfo = curFrame->ai_info;
+        QPen pen(Qt::red, Qt::SolidLine);
         QRect ret;
         pen.setColor(Qt::red); //body使用红色
         pen.setWidth(5);
         painter.setPen(pen);
         for (int i = 0; i < aiInfo.u8NumPerson; ++i) {
-            float x1 = (*((float*) ((char *)aiInfo.u8PersonRois + i * 16)));
-            float y1 = (*((float*) ((char *)aiInfo.u8PersonRois + i * 16 + 4)));
-            float x2 = (*((float*) ((char *)aiInfo.u8PersonRois + i * 16 + 8)));
-            float y2 = (*((float*) ((char *)aiInfo.u8PersonRois + i * 16 + 12)));
+            float x1 = (*((float *) ((char *) aiInfo.u8PersonRois + i * 16)));
+            float y1 = (*((float *) ((char *) aiInfo.u8PersonRois + i * 16 + 4)));
+            float x2 = (*((float *) ((char *) aiInfo.u8PersonRois + i * 16 + 8)));
+            float y2 = (*((float *) ((char *) aiInfo.u8PersonRois + i * 16 + 12)));
 //            LOG(INFO) << x1 << ", " << y1 << ", "<< x2 << ", " << y2;
             ret = QRect(QPoint(width() * x1, height() * y1),
                         QPoint(width() * x2, height() * y2));
@@ -63,17 +83,19 @@ void MediaStreamWidget::paintEvent(QPaintEvent *event) {
         pen.setColor(Qt::green); //face使用绿色
         painter.setPen(pen);
         for (int i = 0; i < aiInfo.u8NumFace; ++i) {
-            ret = QRect(QPoint(width() * (*((float*) ((char *)aiInfo.u8FaceRois + i * 16))), height() * (*((float*) ((char *)aiInfo.u8FaceRois + i * 16 + 4)))),
-                        QPoint(width() * (*((float*) ((char *)aiInfo.u8FaceRois + i * 16 + 8))), height() * (*((float*) ((char *)aiInfo.u8FaceRois + i * 16 + 12)))));
+            ret = QRect(QPoint(width() * (*((float *) ((char *) aiInfo.u8FaceRois + i * 16))),
+                               height() * (*((float *) ((char *) aiInfo.u8FaceRois + i * 16 + 4)))),
+                        QPoint(width() * (*((float *) ((char *) aiInfo.u8FaceRois + i * 16 + 8))),
+                               height() * (*((float *) ((char *) aiInfo.u8FaceRois + i * 16 + 12)))));
             painter.drawRect(ret);
         }
         pen.setColor(Qt::white); //target使用白色
         painter.setPen(pen);
         for (int i = 0; i < aiInfo.u8NumTarget; ++i) {
-            float x1 = (*((float*) ((char *)aiInfo.u8TargetRois + 2 + i * 18)));
-            float y1 = (*((float*) ((char *)aiInfo.u8TargetRois + 2 + i * 18 + 4)));
-            float x2 = (*((float*) ((char *)aiInfo.u8TargetRois + 2 + i * 18 + 8)));
-            float y2 = (*((float*) ((char *)aiInfo.u8TargetRois + 2 + i * 18 + 12)));
+            float x1 = (*((float *) ((char *) aiInfo.u8TargetRois + 2 + i * 18)));
+            float y1 = (*((float *) ((char *) aiInfo.u8TargetRois + 2 + i * 18 + 4)));
+            float x2 = (*((float *) ((char *) aiInfo.u8TargetRois + 2 + i * 18 + 8)));
+            float y2 = (*((float *) ((char *) aiInfo.u8TargetRois + 2 + i * 18 + 12)));
 //            LOG(INFO) << x1 << ", " << y1 << ", "<< x2 << ", " << y2;
             ret = QRect(QPoint(width() * x1, height() * y1),
                         QPoint(width() * x2, height() * y2));
@@ -82,37 +104,31 @@ void MediaStreamWidget::paintEvent(QPaintEvent *event) {
         pen.setColor(Qt::blue); //hand使用蓝色
         painter.setPen(pen);
         for (int i = 0; i < aiInfo.u8NumHand; ++i) {
-            ret = QRect(QPoint(width() * (*((float*) ((char *)aiInfo.u8Hand + i * 16))), height() * (*((float*) ((char *)aiInfo.u8Hand + i * 16 + 4)))),
-                        QPoint(width() * (*((float*) ((char *)aiInfo.u8Hand + i * 16 + 8))), height() * (*((float*) ((char *)aiInfo.u8Hand + i * 16 + 12)))));
+            ret = QRect(QPoint(width() * (*((float *) ((char *) aiInfo.u8Hand + i * 16))),
+                               height() * (*((float *) ((char *) aiInfo.u8Hand + i * 16 + 4)))),
+                        QPoint(width() * (*((float *) ((char *) aiInfo.u8Hand + i * 16 + 8))),
+                               height() * (*((float *) ((char *) aiInfo.u8Hand + i * 16 + 12)))));
             painter.drawRect(ret);
         }
 
         painter.setPen(QColor(0, 160, 230, 150)); //当前手势使用透明蓝色
         painter.setPen(pen);
-        QFont font; font.setPointSize(16); painter.setFont(font);
+        QFont font;
+        font.setPointSize(16);
+        painter.setFont(font);
         painter.drawText(50, 50, QString("当前手势: (type:%1,count:%2)").arg(aiInfo.u8HpType).arg(aiInfo.u8HpCount));
     }
+
+//    LOG(INFO) << "MediaStreamWidget::paintEvent done";
 }
 
 void MediaStreamWidget::drawImage() {
-    AVFrame *frame = &mediaStreamProc->getCurFrame()->image;
-
-    if (nullptr != frame) {
-        if ((refreshAiInfo = mediaStreamProc->getCurFrame()->hasAiInfo)) {
-            aiInfo = mediaStreamProc->getCurFrame()->ai_info;
-        }
-        this->image =
-                QImage(frame->data[0], frame->width, frame->height, QImage::Format_RGB32);//和解码线程共享frame数据，数据由解码线程管理
+    if (mediaStreamProc->getCurFrame()) {
+        curFrame = mediaStreamProc->getCurFrame();
         repaint();
     }
 }
 
 void MediaStreamWidget::updateGeometry(const QRect &parentGeo) {
-    if (image.isNull()) {
-        return;
-    }
-
-    QImage showImage = image.scaled(parentGeo.size(), Qt::KeepAspectRatio);
-    resize(showImage.size());
-    setGeometry(QRect(QPoint(parentGeo.width() / 2 - width() / 2, 0), parentGeo.size()));
+    this->parentGeo = parentGeo;
 }

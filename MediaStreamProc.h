@@ -165,6 +165,7 @@ private:
     const int drainPendingAiRoiFrameMax;
     const int drainPendingAiRoiFrameSize;
     const int aiRoisMapMaxSize;
+    AVFrame curSyncRoiFrame; //当前正在同步框的frame
 };
 
 #endif // MediaStreamProc_H
