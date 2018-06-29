@@ -39,15 +39,13 @@ void MediaStreamWidget::mouseReleaseEvent(QMouseEvent *ev) {
 }
 
 void MediaStreamWidget::paintEvent(QPaintEvent *event) {
-//    LOG(INFO) << "MediaStreamWidget::paintEvent start";
     if (nullptr == curFrame) {
         return;
     }
 
     QPainter painter(this);
 
-    //和解码线程共享frame数据，数据由解码线程管理
-    image = QImage(curFrame->image.data[0], curFrame->image.width, curFrame->image.height, QImage::Format_RGB32)/*.copy()*/;
+//    image = QImage(curFrame->image.data[0], curFrame->image.width, curFrame->image.height, QImage::Format_RGB32)/*.copy()*/;
     if (!image.isNull()) {
         QRect refRect = parentGeo;
         if (refRect.isNull()) {
@@ -61,6 +59,8 @@ void MediaStreamWidget::paintEvent(QPaintEvent *event) {
 //        QImage showImage = image.scaled(parentGeo.size(), Qt::KeepAspectRatio); //不需要scale,在drawImage里面scale
         setGeometry(x, y, w, h);
         painter.drawImage(rect(), image, image.rect(), Qt::NoFormatConversion);
+//        image = QImage();
+//        av_freep(&curFrame->image.data[0]); //不能用free(),必须用av_freep()
     }
 
     if (curFrame->hasAiInfo) {
@@ -125,10 +125,15 @@ void MediaStreamWidget::paintEvent(QPaintEvent *event) {
 void MediaStreamWidget::drawImage() {
     if (mediaStreamProc->getCurFrame()) {
         curFrame = mediaStreamProc->getCurFrame();
-        repaint();
+        image = QImage(curFrame->image.data[0], curFrame->image.width, curFrame->image.height, QImage::Format_RGB32).copy();
+//        image = QImage(curFrame->image.width, curFrame->image.height, QImage::Format_RGB32);
+//        memcpy(image.bits(), curFrame->image.data[0], image.byteCount());
+        //getCurFrame调用返回后可能立刻会被释放
+        repaint(); //repaint()不能保证paintEvent调用完成后再返回,所以必须在这里进行图片内存的copy
     }
 }
 
 void MediaStreamWidget::updateGeometry(const QRect &parentGeo) {
     this->parentGeo = parentGeo;
+    update();
 }

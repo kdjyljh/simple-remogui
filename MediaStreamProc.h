@@ -107,6 +107,8 @@ private:
     void pushPacket(const AVPacket &packet);
     void popPacket(AVPacket &packet);
 
+    std::map<uint64_t, MediaFrame_AI_Info>::iterator findRoisMapIt(int64_t pts);
+
 private:
     AVFormatContext *input_ctx;
     AVStream *video;
@@ -165,6 +167,7 @@ private:
     const int drainPendingAiRoiFrameMax;
     const int drainPendingAiRoiFrameSize;
     const int aiRoisMapMaxSize;
+    const int syncRoiDiffMax; //寻找框时框pts和frame的pts之间差值的最大值
     AVFrame curSyncRoiFrame; //当前正在同步框的frame
 };
 
