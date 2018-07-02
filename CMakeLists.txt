@@ -34,7 +34,7 @@ set(SOURCE_FILES
         MediaStreamWidget.cpp)
 
 include_directories(
-        custom-ffmpeg
+#        custom-ffmpeg
         ${include_directories})
 
 set(CUSTOM_LIBS

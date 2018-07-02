@@ -260,10 +260,12 @@ int MediaStreamProc::vaapiInit() {
 }
 #endif
 
+#ifdef CUSTOM_FFMPEG
 extern "C" {
 #include "libavformat/rtpdec.h"
 #include "libavformat/rtsp.h"
 }
+#endif
 
 //rtsp://192.168.0.1/livestream/12
 //rtsp://184.72.239.149/vod/mp4://BigBuckBunny_175k.mov
@@ -282,7 +284,6 @@ MediaStreamProc::MediaStreamProc(QObject *parent) :
         frame_width(-1),
         frame_height(-1),
         frameQueueSize(3),
-//        pendingAiRoiFrameQueSize(30),
         pendingFrameSize(10),
         pendingFrameCounter(0),
         deviceType("vaapi"),
@@ -315,14 +316,7 @@ MediaStreamProc::MediaStreamProc(QObject *parent) :
 MediaStreamProc::~MediaStreamProc() {
     readStreamThread->quit();
     readStreamThread->wait();
-//    //先关闭解码和取流线程，再释放资源
-//    readFrameThread.interrupt();
-//    readFrameThread.join();
-//    playThread.interrupt();
-////    playThread.join(); //不使用jion，可能产生死锁
-//    playThread.detach(); //使用detach释放线程资源
-//    decodeFrameThread.interrupt();
-//    decodeFrameThread.join();
+
     deInit();
 }
 
@@ -358,8 +352,6 @@ int MediaStreamProc::init() {
 }
 
 void MediaStreamProc::deInit() {
-//    boost::unique_lock<boost::mutex> locki(mtxStreamInputReady);
-//    boost::unique_lock<boost::mutex> lockd(mtxStreamDecoderReady);
     //先关闭解码和取流线程，再释放资源
     readFrameThread.interrupt();
     readFrameThread.join();
@@ -406,21 +398,6 @@ void MediaStreamProc::readFrame() {
                 break;
         }
 
-//        MediaFrame_AI_Info aiInfo;
-//        memset(&aiInfo, 0, sizeof(MediaFrame_AI_Info));
-//        decodeAiInfoFrame(packet, aiInfo);
-//        RTPDemuxContext *s = static_cast<RTPDemuxContext *>(
-//                static_cast<RTSPState *>(input_ctx->priv_data)->rtsp_streams[0]->transport_priv);
-//        uint32_t rtpPts = s->timestamp;
-//        LOG(INFO) << "MediaStreamProc::readFrame ai-pts:" << aiInfo.u64TimeStamp << " ai-pts/90:" << aiInfo.u64TimeStamp/90
-//                  <<" pkt-pts/90:" << packet.pts / 90 << " pkt-pts:" << packet.pts << " rtp-pts:" << rtpPts;
-
-//        pkt.pts= av_rescale_q(c->coded_frame->pts, c->time_base,
-//                              st->time_base);
-//        frameDuration = input_ctx->streams[video_stream]->time_base.den / 30; // i.e. 25
-//        frameTime     = frame_count * frameDuration;
-//        pkt->pts      = frameTime / video_st->time_base.num;
-
         pushPacket(packet);
     }
 }
@@ -433,8 +410,6 @@ bool MediaStreamProc::readStream() {
 void MediaStreamProc::_readStream() {
     int i = 50; //如果无视频流，重复连接50次
     {
-//        boost::unique_lock<boost::mutex> locki(mtxStreamInputReady);
-//        boost::unique_lock<boost::mutex> lockd(mtxStreamDecoderReady);
         do {
             LOG(INFO) << "0.deInit #########################";
             deInit();
@@ -444,28 +419,7 @@ void MediaStreamProc::_readStream() {
             --i;
             boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
         } while (i);
-
-//        deInit();
-//        while (i && init()) {
-//            LOG(INFO) << "0. deInit #########################";
-//            deInit();
-//            --i;
-//            boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-//        }
-//        cvStreamInputReady.notify_one();
-//        cvStreamDecoderReady.notify_one();
     }
-
-    //一个对象只初始化线程一次，线程资源在析构函数里释放
-//    static bool firstRun = true;
-//    if (i && firstRun) {
-//        //初始化成功，运行线程
-//        LOG(INFO) << "10.MediaStreamProc::play thread start###########################";
-//        readFrameThread = boost::thread(&MediaStreamProc::readFrame, this);
-//        decodeFrameThread = boost::thread(&MediaStreamProc::decodeFrame, this);
-//        playThread = boost::thread(&MediaStreamProc::play, this);
-//    }
-//    firstRun = false;
 
     emit readStreamDone(i);
 
@@ -720,10 +674,6 @@ int MediaStreamProc::decode_write_normal(AVCodecContext *avctx, AVPacket *packet
             mediaFrame.image = decoded_frame;
             mediaFrame.hasAiInfo = false;
             pushFrame(mediaFrame); //直接显示
-//            uint32_t rtpPts = static_cast<RTPDemuxContext *>(
-//            static_cast<RTSPState *>(input_ctx->priv_data)->rtsp_streams[0]->transport_priv)->timestamp;
-//            LOG(INFO) << "MediaStreamProc::decode_write_normal direct show frame:" << decoded_frame.pts << " rtp-pts:" << rtpPts;
-
             continue; //继续解码,不进行匹配框
         }
 

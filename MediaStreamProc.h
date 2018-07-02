@@ -155,19 +155,18 @@ private:
     boost::condition_variable cvFrameQueue;
     boost::mutex mtxFrameQueueFull;
     boost::condition_variable cvFrameQueueFull;
-    const int frameQueueSize;
+    const unsigned int frameQueueSize;
 
-    std::deque<AVFrame> pendingAiRoiFrameQue; //rtp-pts---frame
-//    const unsigned int pendingAiRoiFrameQueSize;
+    std::deque<AVFrame> pendingAiRoiFrameQue;
     std::map<uint64_t, MediaFrame_AI_Info> aiRoisMap;
-    int pendingFrameCounter; //寻找包数目计数器
-    const int pendingFrameSize; //当在中未找到roi时,继续寻找的包数目
+    unsigned int pendingFrameCounter; //寻找包数目计数器
+    const unsigned int pendingFrameSize; //当在中未找到roi时,继续寻找的包数目
     //当pendingAiRoiFrameQue大小超过这个值时
     //会将pendingAiRoiFrameQue里面的frame直接显示(不匹配框),取出的frame个数为drainPendingAiRoiFrameSize
-    const int drainPendingAiRoiFrameMax;
-    const int drainPendingAiRoiFrameSize;
-    const int aiRoisMapMaxSize;
-    const int syncRoiDiffMax; //寻找框时框pts和frame的pts之间差值的最大值
+    const unsigned int drainPendingAiRoiFrameMax;
+    const unsigned int drainPendingAiRoiFrameSize;
+    const unsigned int aiRoisMapMaxSize;
+    const unsigned int syncRoiDiffMax; //寻找框时框pts和frame的pts之间差值的最大值
     AVFrame curSyncRoiFrame; //当前正在同步框的frame
 };
 
