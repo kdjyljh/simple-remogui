@@ -294,7 +294,7 @@ MediaStreamProc::MediaStreamProc(QObject *parent) :
         decoderType(DecoderType_None),
         readStreamThread(new QThread(this)) {
     LOG(INFO) << "MediaStreamProc::MediaStreamProc constructor this:" << this;
-    av_log_set_level(AV_LOG_SKIP_REPEATED); //关闭ffmpeg显示的log
+//    av_log_set_level(AV_LOG_SKIP_REPEATED); //关闭ffmpeg显示的log
 #ifdef VAAPI_ENABLE
     try {
         boost::property_tree::ptree root;
@@ -710,11 +710,11 @@ next_sync_roi:
                         if ((roisMapIt != aiRoisMap.end())) {
                             mediaFrame.hasAiInfo = true;
                             mediaFrame.ai_info = roisMapIt->second;
-                            LOG(INFO) << "MediaStreamProc::decode_write_normal find roi while draining frame-pts:" << mediaFrame.image.pts;
+//                            LOG(INFO) << "MediaStreamProc::decode_write_normal find roi while draining frame-pts:" << mediaFrame.image.pts;
                             aiRoisMap.erase(roisMapIt++); //将同步后的框删掉
                         }
                         pushFrame(mediaFrame);
-                        LOG(INFO) << "MediaStreamProc::decode_write_normal push find once roi frame draining........";
+//                        LOG(INFO) << "MediaStreamProc::decode_write_normal push find once roi frame draining........";
                     }
                 }
 
@@ -747,8 +747,7 @@ next_sync_roi:
                 //寻找当前帧的框,进行匹配
                 mediaFrame.image = curSyncRoiFrame;
                 mediaFrame.hasAiInfo = false;
-                //尝试寻找ROI
-                roisMapIt = findRoisMapIt(curSyncRoiFrame.pts);
+                roisMapIt = findRoisMapIt(curSyncRoiFrame.pts); //尝试寻找ROI
                 if ((roisMapIt != aiRoisMap.end())) {
                     mediaFrame.hasAiInfo = true;
                     mediaFrame.ai_info = roisMapIt->second;
